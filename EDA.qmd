@@ -1,0 +1,778 @@
+---
+title: "EDA - Home Credit Risk Default"
+author: "Nikita Muddapati"
+date: "10-05-2024"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    embed-resources: true
+    link-external-icon: true
+    link-external-newwindow: true
+execute:
+  include: true
+  eval: true    
+  warning: false
+  message: false
+self-contained: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Introduction
+
+
+### Background and case
+
+Home Credit primarily uses traditional credit scoring methods to evaluate the repayment capacity of loan applicants. However, these conventional data sources often misjudge clients’ repayment potential, leading to unjust credit denials or approvals for unsuitable candidates, increasing default rates and financial risk.
+
+### Project goal
+
+The aim is to accurately predict loan default risk using customer demographic, financial, and credit data, hence reducing default rates, optimizing loan approvals, and improving Home Credit’s operational efficiency.
+
+### Summarize business and analytic problems
+
+The business problem involves reducing financial risk while ensuring financial inclusion for more customers. Analytically, the problem requires building a predictive model using supervised machine learning to classify individuals into likely defaulters or non-defaulters, improving decision-making accuracy.
+
+### Purpose of EDA and notebook
+
+EDA involves exploring the given datasets, uncovering patterns between key variables, and understanding the relationships and associations with loan default risk before model building. The notebook is used to systematically present the results as well as perform and dynamically reproduce the data analysis.
+
+
+# Description of the data
+
+```{r load libraries}
+
+#load libraries
+
+library(tidyverse)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+#install.packages("skimr")     #data exploration tools
+#install.packages("recipes")
+#install.packages("h2o")
+library(skimr)
+library(recipes)
+library(h2o)
+library(tictoc)
+library(purrr)
+library(psych)
+library(RWeka)
+#install.packages("corrplot")
+library(corrplot)
+library(ggplot2)
+
+```
+
+
+```{r load required data}
+
+#load data
+
+hc_train <- read_csv("C:/Users/nikit/Downloads/Capstone Project/application_train.csv")
+hc_test <- read_csv("C:/Users/nikit/Downloads/Capstone Project/application_test.csv")
+
+```
+## Shape of data
+
+```{r shape of data}
+
+#shape of data
+
+hc_train %>% 
+nrow()
+
+hc_train %>%
+ncol()
+
+
+hc_test %>%
+nrow()
+
+hc_test %>%
+ncol()
+
+```
+
+## Structure and Summary Statistics
+
+```{r inspect}
+
+#get all column names
+colnames(hc_train)
+
+#first 6 and last 6 rows
+head(hc_train)
+head(hc_test)
+
+tail(hc_train)
+tail(hc_test)
+
+#structure of data
+glimpse(hc_train)   # or str()
+glimpse(hc_test)    
+
+#summary statistics
+summary(hc_train)
+summary(hc_test)
+
+```
+
+The test set of application data does not have the target variable.
+
+## Target 
+
+```{r target}
+
+# pull target variable and structure
+
+glimpse(hc_train$TARGET)
+
+#or str(hc_train$TARGET)
+
+
+# type
+class(hc_train$TARGET)
+```
+The target is numeric in nature and a binary column with 0's and 1's.
+
+# Data preprocessing and scope of missing data
+
+```{r data preprocessing}
+
+# Define function to remove outliers based on the IQR method (for numeric columns)
+
+remove_outliers <- function(df) {
+  df %>%
+    mutate(across(where(is.numeric), ~ {
+      
+      if (cur_column() == "TARGET") {   # exclude changes to target
+        return(.)           
+      }
+      
+      x<-.
+      Q1 <- quantile(x, 0.25, na.rm = TRUE)
+      Q3 <- quantile(x, 0.75, na.rm = TRUE)
+      IQR_val <- Q3 - Q1
+      lower_bound <- Q1 - 1.5 * IQR_val
+      upper_bound <- Q3 + 1.5 * IQR_val
+      
+      # replace outliers with the respective bounds (capping outliers)
+      ifelse(x < lower_bound, lower_bound, ifelse(x > upper_bound, upper_bound, x))
+    }))
+}
+
+
+# CLEAN TRAIN DATA
+#remove outliers, missing values and duplicates, except for the TARGET column
+c_train <- hc_train %>%
+  na.omit() %>%
+  filter(!is.na(TARGET)) %>%  
+  select(-SK_ID_CURR) %>%       #remove id column, no predicting power
+  distinct() %>% 
+  remove_outliers()
+   
+  
+
+
+#FACTORING:
+# identify all char columns and convert to factor
+char_to_factor <- c_train %>%
+  select(where(is.character)) %>%
+  names()
+
+c_train <- c_train %>%
+  mutate(across(all_of(char_to_factor), as.factor))
+
+
+# identify all numerical columns and convert to factor
+# set factor limit
+# all columns with <=8 unique num. values are converted into factors
+
+factor_limit <- 8 
+
+# filter all num cols with no. of unique values <= factor limit(8)
+
+num_to_factor <- c_train %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), ~ length(unique(.)))) %>%
+  gather(key = "variable", value = "unique_count") %>%    #collect the col names by pull()-ing the 'key' column and convert to categorical
+  filter(unique_count <= factor_limit & variable != "TARGET") %>%
+  pull(variable)
+
+
+c_train <- c_train %>%
+  mutate(across(all_of(num_to_factor), as.factor))  #convert to factor
+
+
+#ensure target levels remain same and target=1 rows are not missing
+
+c_train <- c_train %>%
+  mutate(TARGET = factor(TARGET, levels = c(0, 1)))
+
+#nlevels(c_train$TARGET) 
+#summary(c_train)
+
+
+#retrieve all factored columns(both char and num data)
+ c_train %>%
+  select(where(is.factor))%>%
+  colnames()
+
+
+
+ 
+ 
+# CLEAN TEST DATA
+#remove outliers, missing values and duplicates, except for the TARGET column
+c_test <- hc_test %>%
+  na.omit() %>%
+  distinct() %>% 
+  remove_outliers() %>%
+  select(-SK_ID_CURR)              #remove id column, no predicting power
+   
+  
+
+#FACTORING:
+# identify all char columns and convert to factor
+char_to_factor2 <- c_test %>%
+  select(where(is.character)) %>%
+  names()
+
+c_test <- c_test %>%
+  mutate(across(all_of(char_to_factor2), as.factor))
+
+
+# identify all numerical columns and convert to factor
+num_to_factor2 <- c_test %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), ~ length(unique(.)))) %>%
+  gather(key = "variable", value = "unique_count") %>%    #collect the col names by pull()-ing the 'key' column and convert to categorical
+  filter(unique_count <= factor_limit) %>%
+  pull(variable)
+
+
+c_test <- c_test %>%
+  mutate(across(all_of(num_to_factor2), as.factor))  #convert to factor
+
+
+#summary(c_test)
+
+# retrieve all factored columns(both char and num data)
+ c_test %>%
+  select(where(is.factor))%>%
+  colnames()
+ 
+ 
+```
+
+After data preprocessing and factoring both character and numerical data, we have a total of 64 categorical factored variables in the training data.
+
+
+# Summary tables, Target exploration, and Accuracy
+
+```{r structure after cleaning}
+
+glimpse(c_train)
+summary(c_train)
+
+
+glimpse(c_test)
+summary(c_test)
+
+
+nlevels(c_train$CODE_GENDER)
+str(c_train$CODE_GENDER)
+
+
+# Explore target
+
+nlevels(c_train$TARGET)    # levels = 2
+
+table(c_train$TARGET)  #counts of each class
+
+
+# Accuracy
+
+c_train %>% 
+summarize(TARGET = mean(TARGET== '0'))  #majority class accuracy
+
+c_train %>%
+summarize(TARGET = mean(TARGET == '1'))  #minority class accuracy
+
+```
+ 
+- The cleaned dataset has a total of 8602 loan applicants, out of which 8076 did not default and 526 did default.
+- ~ 94% did not default. Hence majority class is a no default (loan default- no). This is also the the accuracy of the majority class classifier.
+- ~ 6% did default. Hence minority class is a default (loan default- yes). This is also the accuracy of the minority class classifier.
+
+
+# Correlations
+
+## Understanding numeric variables and correlation
+
+```{r correlations}
+
+c_train %>% 
+select(where(is.numeric)) %>%
+  ncol()
+
+
+# subset first 5 numeric cols and plot correlation
+numeric_subset <- c_train %>%
+  select(where(is.numeric)) %>%
+  select(1:5)  
+
+pairs.panels(numeric_subset)
+cor(numeric_subset)
+
+# subset last 5 numeric cols and plot correlation
+numeric_subset2 <- c_train %>%
+  select(where(is.numeric)) %>%
+  select(43:48)  
+
+pairs.panels(numeric_subset2)
+cor(numeric_subset2)
+
+
+
+# correlation matrix to correlate all variables at once
+cor_matrix <- c_train %>%
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs")     #  handle missing values
+
+
+cor_matrix 
+
+```
+
+- There are 57 numeric columns.
+
+- In the subset of first 5 numeric columns, AMT_CREDIT and AMT_GOODS_PRICE have an almost perfect correlation (0.99), indicating both of them are closely aligned. AMT_ANNUITY is also fairly correlated with AMT_CREDIT (0.78), suggesting higher credit loans lead to larger annuity payments.
+
+- In the subset of last 5 numeric columns, the strongest relationship is between YEARS_BEGINEXPLUATATION_MEDI and YEARS_BUILD_MEDI (0.99). Also BASEMENTAREA_MEDI and ENTRANCES_MEDI (0.68) are fairly correlated.
+
+
+## Correlation with target and feature importance
+
+```{r cor with target}
+
+# correlations with target
+#ensure target2 is numeric(cor only btw numeric .v) and included in c_train and cor matrix
+
+c_train$TARGET2 <- as.numeric(as.factor(c_train$TARGET))
+
+
+cor_matrix_t <- c_train %>%
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs")
+
+cor_with_target <- sort(cor_matrix_t[, "TARGET2"], decreasing = TRUE)
+
+
+# top 5 and least 5 imp variables 
+head(cor_with_target)
+tail(cor_with_target)
+
+#top 25 most imp variables (excluding target)
+
+head(cor_with_target, 26)  
+
+# correlation matrix between first 15 numeric cols
+cor_matrix_15 <- c_train %>%
+  select(where(is.numeric)) %>%   
+  select(1:15) %>%                
+  cor(use = "complete.obs")        # handle missing values
+
+
+# correlation heatmap btw first 15 numeric cols
+
+corrplot(cor_matrix_15, method = "color", tl.cex = 0.4, addCoef.col = "black", 
+         title = "Correlation Heat Map of the First 15 Numeric Variables",
+           mar = c(0, 0, 2, 0)) # Adjust margins to fit title properly
+
+
+```
+
+- The 5 most important variables associated with loan default and positive correlation are:
+1. DAYS_EMPLOYED: 0.0652
+2. OWN_CAR_AGE: 0.0427
+3. DAYS_BIRTH: 0.0410
+4. AMT_REQ_CREDIT_BUREAU_YEAR: 0.0318
+5. DAYS_ID_PUBLISH: 0.0248
+
+- The 5 least important variables associated with loan default and negative correlation are:
+
+1. AMT_INCOME_TOTAL: -0.0451
+2. FLOORSMAX_AVG: -0.0456
+3. FLOORSMAX_MODE: -0.0461
+4. EXT_SOURCE_2: -0.1288
+5. EXT_SOURCE_1: -0.1295
+
+
+## Understanding distribution of numeric variables
+
+```{r spread}
+
+
+#distribution of few imp variables
+
+mean(c_train$AMT_ANNUITY)
+median(c_train$AMT_ANNUITY)
+quantile(c_train$AMT_ANNUITY, seq(from = 0, to = 1, by = 0.25))   #quartiles
+quantile(c_train$AMT_ANNUITY, seq(from = 0, to = 1, by = 0.10))   #deciles
+
+
+mean(c_train$DAYS_BIRTH)
+median(c_train$DAYS_BIRTH)
+quantile(c_train$DAYS_BIRTH, seq(from = 0, to = 1, by = 0.25))   #quartiles
+quantile(c_train$DAYS_BIRTH, seq(from = 0, to = 1, by = 0.10))   #deciles
+
+
+
+mean(c_train$DAYS_EMPLOYED)
+median(c_train$DAYS_EMPLOYED)
+quantile(c_train$DAYS_EMPLOYED, seq(from = 0, to = 1, by = 0.25))   #quartiles
+quantile(c_train$DAYS_EMPLOYED, seq(from = 0, to = 1, by = 0.10))   #deciles
+
+
+mean(c_train$REGION_POPULATION_RELATIVE)
+median(c_train$REGION_POPULATION_RELATIVE)
+quantile(c_train$REGION_POPULATION_RELATIVE, seq(from = 0, to = 1, by = 0.25))   #quartiles
+quantile(c_train$REGION_POPULATION_RELATIVE, seq(from = 0, to = 1, by = 0.10))    #deciles
+
+
+mean(c_train$LIVINGAPARTMENTS_MODE)
+median(c_train$LIVINGAPARTMENTS_MODE)
+quantile(c_train$LIVINGAPARTMENTS_MODE, seq(from = 0, to = 1, by = 0.25))   #quartiles
+quantile(c_train$LIVINGAPARTMENTS_MODE, seq(from = 0, to = 1, by = 0.10))    #deciles
+
+```
+
+- The mean annuity amount is about $31,236 and median is $29,209.5.Majority of the annuity amounts fall between $19,548 (25th percentile) and $40,320 (75th percentile), while the top 10% exceed $52,789.5.
+
+- The mean age in days is about -14,188 and median is -13,883.5. Majority of the ages are falling between -16,299 (25th percentile) and -11,664 (75th percentile) days, with the oldest 10% older than -18,893 days.
+
+- The mean of DAYS_EMPLOYED is around -2203.44, with a median of -1680.5. The majority of values lie between -3132.5 (25th percentile) and -817 (75th percentile), with the lowest 10% of values being below -5026.5.
+
+- The mean of the REGION_POPULATION_RELATIVE is about 0.0228, with a median of 0.0202,majority of the data falls between 0.0106 (25th percentile) and 0.0308 (75th percentile), with the top 10% of regions having population relative values above 0.0462.
+
+- The mean of LIVINGAPARTMENTS_MODE is about 0.0998 while median is 0.0808, most data falls between 0.0551 (25th percentile) and 0.1322 (75th percentile), with the top 10% of values exceeding 0.2204.
+
+
+
+# Visualizations
+
+```{r plots}
+
+# Barplot for OWN_CAR_AGE vs TARGET
+
+ggplot(c_train, aes(x = OWN_CAR_AGE, fill = TARGET)) + 
+  geom_bar(position = "dodge") + 
+  labs(title = "Client's Car Age Distribution by Loan Default", 
+       x = "Own Car Age", 
+       y = "Count", 
+       fill = "Loan Default")
+
+
+# Histogram for DAYS_EMPLOYED
+
+ggplot(c_train, 
+       aes(x = DAYS_EMPLOYED)) + 
+  geom_histogram(binwidth = 500, fill = "green", color = "black") + 
+  labs(title = "Distribution of no.of days employed before applying for loan", 
+       x = "Days Employed", 
+       y = "Count")
+
+
+# Boxplot for AMT_CREDIT vs TARGET
+
+ggplot(c_train, aes(x = TARGET, y = AMT_CREDIT, fill = TARGET)) + 
+  geom_boxplot() + 
+  labs(title = "Loan Default by Credit Amount", 
+       x = "Loan Default", 
+       y = "Credit Amount",
+       fill = "Loan Default")
+
+
+# Scatterplot for DAYS_BIRTH vs AMT_CREDIT
+
+ggplot(c_train, aes(x = DAYS_BIRTH, y = AMT_CREDIT, color = TARGET)) + 
+  geom_point(alpha = 0.5) + 
+  labs(title = "Age vs Credit Amount by Loan Default", 
+       x = "Age (Days Birth)", 
+       y = "Credit Amount",
+       color = "Loan Default")
+
+
+
+# Boxplot for AMT_ANNUITY vs TARGET
+
+ggplot(c_train, aes(x = TARGET, y = AMT_ANNUITY, fill = TARGET)) + 
+  geom_boxplot() + 
+  labs(title = "Loan Default by Annuity Amount", 
+       x = "Loan Default", 
+       y = "Annuity Amount",
+       fill = "Loan Default")
+
+
+# Histogram for HOUR_APPR_PROCESS_START
+
+ggplot(c_train, aes(x = HOUR_APPR_PROCESS_START)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") + 
+  labs(title = "Hour of Application Processing Start",
+       x = "Hour",
+       y = "Count")
+
+
+```
+
+
+
+- **Car Age vs Loan Default:** Majority of clients with cars irrespective of car age did default. A very tiny portion of clients with car ages between 0 to 10 years defaulted. As car age increases beyond 15 years, there are hardly any loan defaults meaning clients with old cars seem to repay more often.
+
+- **No.of client employed days before application:** The histogram shows that most people(about 2000 count) who have applied for loan have been employed for less than 2000 days before applying for the loan, with a notable peak in employment duration just around 0 days of employment, indicating many of them were newly employed or had a short employment history. Also, few of them (500 count) seem to have a longer employment (6000 days) before applying.
+
+- **Loan Default by Credit Amount:** Those who received a higher credit amount (in previous loan application) tend not to default(0) and pay back. Median credit amount is higher for default = 0 compared to those who defaulted (1). Although both groups share similar ranges in respective credit amounts, with a few outliers present for those who failed repayment.
+
+- **Age vs Credit Amount by Loan Default:** The scatter plot shows the relationship between a client's age (in days since birth) and credit amount approved, filtered by default status. There is no clear distinction in the credit amount approved across the different ages between those who defaulted and did not, but a concentration of data points around certain ages and credit amounts is observed.
+
+- **Loan Default by Annuity:** Applicants who defaulted(1) tend to have slightly higher loan annuity amounts compared to those who did not (0), with a few outliers among the default group(1). The median annuity amount for both groups is close, though the distribution for defaulters appears wider.
+
+- **Busiest hour:** Majority of clients applied between 9 AM and 12 PM, with a peak around 11 AM, suggesting 11 AM is the busiest hour for loan application processing.
+
+
+
+# Merge Data
+
+```{r}
+
+# Load transactional data
+bureau <- read_csv("bureau.csv")
+
+# Aggregate(group) data using col - SK_ID_CURR for instance to calculate sum, avg, and count of the credit amount from the bureau dataset for each client.
+
+b_agg <- bureau %>%
+  group_by(SK_ID_CURR) %>%
+  summarise(
+    total_credit_amount = sum(AMT_CREDIT_SUM, na.rm = TRUE),
+    mean_credit_amount = mean(AMT_CREDIT_SUM, na.rm = TRUE),
+    count_b_entries = n()
+  )
+
+head(b_agg)
+
+# Join hc_train (application data) with b_agg(transaction data) 
+
+merged <- hc_train %>%
+  left_join(b_agg,           # left join to ensure all rows from hc_train are kept
+            by = "SK_ID_CURR")  
+
+
+head(merged)
+
+```
+
+
+## Explore Merged Data
+
+```{r}
+
+merged %>% 
+nrow()
+
+merged %>%
+ncol()
+
+glimpse(merged)
+summary(merged)
+
+```
+
+
+
+## Clean Merged Data
+
+```{r}
+
+# Define function to remove outliers based on the IQR method (for numeric columns)
+
+remove_outliers2 <- function(df) {
+  df %>%
+    mutate(across(where(is.numeric), ~ {
+      
+      if (cur_column() == "TARGET") {   # exclude changes to target
+        return(.)           
+      }
+      
+      x<-.
+      Q1 <- quantile(x, 0.25, na.rm = TRUE)
+      Q3 <- quantile(x, 0.75, na.rm = TRUE)
+      IQR_val <- Q3 - Q1
+      lower_bound <- Q1 - 1.5 * IQR_val
+      upper_bound <- Q3 + 1.5 * IQR_val
+      
+      # replace outliers with the respective bounds (capping outliers)
+      ifelse(x < lower_bound, lower_bound, ifelse(x > upper_bound, upper_bound, x))
+    }))
+}
+
+
+# CLEAN DATA
+#remove outliers, missing values and duplicates, except for the TARGET column
+c_merged <- merged %>%
+  na.omit() %>%
+  filter(!is.na(TARGET)) %>%  
+  select(-SK_ID_CURR) %>%       #remove id column, no predicting power
+  distinct() %>% 
+  remove_outliers()
+   
+  
+
+
+#FACTORING:
+# identify all char columns and convert to factor
+char_factor <- c_merged %>%
+  select(where(is.character)) %>%
+  names()
+
+c_merged <- c_merged %>%
+  mutate(across(all_of(char_factor), as.factor))
+
+
+# identify all numerical columns and convert to factor
+# set factor limit
+# all columns with <=8 unique num. values are converted into factors
+
+factor_limit <- 8 
+
+# filter all num cols with no. of unique values <= factor limit(8)
+
+num_factor <- c_merged %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), ~ length(unique(.)))) %>%
+  gather(key = "variable", value = "unique_count") %>%    #collect the col names by pull()-ing the 'key' column and convert to categorical
+  filter(unique_count <= factor_limit & variable != "TARGET") %>%
+  pull(variable)
+
+
+c_merged <- c_merged %>%
+  mutate(across(all_of(num_factor), as.factor))  #convert to factor
+
+
+#ensure target levels remain same and target=1 rows are not missing
+
+c_merged<- c_merged %>%
+  mutate(TARGET = factor(TARGET, levels = c(0, 1)))
+
+#nlevels(c_merged$TARGET) 
+#summary(c_merged)
+
+
+#retrieve all factored columns(both char and num data)
+c_merged %>%
+  select(where(is.factor))%>%
+  colnames()
+
+```
+- There are 3 additional columns(125 columns in total) in which the same 64 are the total factored columns in the merged dataset.
+
+## Explore Cleaned Merged Data, Target, and Accuracy 
+
+```{r}
+
+glimpse(c_merged)
+#summary(c_merged)
+
+
+
+# Explore target
+
+nlevels(c_merged$TARGET)    # levels
+
+table(c_merged$TARGET)  #counts of each class
+
+
+# Accuracy
+
+c_merged %>% 
+summarize(TARGET = mean(TARGET== '0'))  #majority class accuracy
+
+c_merged %>%
+summarize(TARGET = mean(TARGET == '1'))  #minority class accuracy
+
+
+```
+
+- There are a total of 8579 rows and 124 columns in cleaned merged data. 8057 of the clients did not default and 522 have defaulted.
+- Accuracy remains the same at ~ 94% for non-default class and ~ 6% for defaulted class.
+
+
+## Variable importance and association with default
+
+```{r}
+
+# correlations with target
+#ensure target2 is numeric(cor only btw numeric .v) and included in c_train and cor matrix
+
+c_merged$TARGET2 <- as.numeric(as.factor(c_merged$TARGET))
+
+
+cor_matrix_m <- c_merged %>%
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs")
+
+cor <- sort(cor_matrix_m[, "TARGET2"], decreasing = TRUE)
+
+
+# top 5 and least 5 imp variables 
+head(cor)
+tail(cor)
+
+#top 25 most imp numeric variables (excluding target)
+
+head(cor,26)  
+
+# correlation matrix between first 15 numeric cols
+cor_m_15 <- c_merged %>%
+  select(where(is.numeric)) %>%   
+  select(1:15) %>%                
+  cor(use = "complete.obs")        # handle missing values
+
+
+# correlation heatmap btw first 15 numeric cols
+
+corrplot(cor_m_15, method = "color", tl.cex = 0.4, addCoef.col = "black", 
+         title = "Correlation Heat Map of the First 15 Numeric Variables in Joined Transactional Data",
+           mar = c(0, 0, 2, 0)) # Adjust margins to fit title properly
+
+```
+- Top 5 numeric features in association with loan default in the joined transactional data:
+   DAYS_EMPLOYED: 0.0646
+   OWN_CAR_AGE: 0.0436
+   DAYS_BIRTH: 0.0411
+   AMT_REQ_CREDIT_BUREAU_YEAR: 0.0324
+   DAYS_ID_PUBLISH: 0.0262
+   
+- Least 5 numeric features in association with loan default in the joined transactional data (-ve correlation):
+   EXT_SOURCE_3: -0.1532
+   EXT_SOURCE_1: -0.1286
+   EXT_SOURCE_2: -0.1279
+   FLOORSMAX_MODE: -0.0452
+   FLOORSMAX_AVG: -0.0446
+   
+
+# Results 
+
+The initial dataset contained 307,511 rows and 122 columns for the training data and 48,744 rows with 121 columns for the test data. After cleaning and preprocessing, the dataset was reduced to 8,602 rows in the train set and 1,739 rows in the test set. The training dataset now has 64 factored categorical variables and 57 numeric columns. The target variable distribution shows that around 94% of loan applicants did not default, while only 6% defaulted, making the dataset highly imbalanced. The majority class (no default) is the baseline accuracy - 94%, meaning any model needs to significantly outperform this number.
+
+The correlation analysis shows strong relationships between some key variables. For instance, AMT_CREDIT and AMT_GOODS_PRICE have an almost perfect correlation (0.99), indicating that higher loans are typically associated with higher-value goods. Similarly, the credit amount (AMT_CREDIT) is fairly correlated with annuity payments (AMT_ANNUITY). Other important findings include high correlations between YEARS_BEGINEXPLUATATION_MEDI and YEARS_BUILD_MEDI, suggesting these variables are closely aligned.  Three most important features influencing loan default are DAYS_EMPLOYED, OWN_CAR_AGE, and DAYS_BIRTH, with positive correlations to likelihood of default.
+
+The EDA revealed interesting patterns. For example, the bar plot of OWN_CAR_AGE vs loan default showed that clients with newer cars (0 to 10 years old) were slightly more likely to default, while those with older cars rarely defaulted. Similarly, the histogram of DAYS_EMPLOYED highlighted that many applicants were newly employed or had short employment histories before applying for a loan. Those with longer employment histories generally applied less frequently. In terms of credit amount, applicants with higher credit amounts tended not to default, with the median credit amount higher for non-defaulters.
+Additional insights included that defaulters tended to have higher annuity payments, with a few outliers skewing the results. The busiest time for loan applications was between 9 AM and 12 PM, peaking around 11 AM, indicating this is when most clients submit their applications. 
+
+After merging with transactional data, the dataset now has 125 columns, with 3 additional columns and 8,579 rows, of which 8,057 clients did not default and 522 did, maintaining the same proportion of each target class as before. Overall, the joined data maintained similar important features and accuracy with the pre-merged data, with only minor changes observed in the least important variables. As a result, employment duration, client age, and car age remain key factors in predicting loan defaults.
+

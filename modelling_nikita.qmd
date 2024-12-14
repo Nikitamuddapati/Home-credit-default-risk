@@ -1,0 +1,656 @@
+---
+title: "Home Credit Default Risk: Modelling"
+author: "Nikita Muddapati"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Contents"
+execute:
+  include: true
+  eval: true    
+  warning: false
+  message: false
+---
+
+
+# Data Setup
+
+```{r}
+
+pacman::p_load(tidyverse,skimr,janitor,knitr,caret,rminer,mice,dbscan,tictoc,dplyr,ranger,psych, tidymodels, ggplot2, scales, fastDummies,caret)
+
+library(xgboost)
+library(Matrix)
+library(pROC)   # to plot ROC-AUC
+library(e1071)  # for svm
+library(GGally) # to plot with ggpairs()
+library(doParallel)  # for training xgboost using parallel processing
+library(MLmetrics)
+
+library(readxl)
+library(themis)
+
+
+
+
+```
+
+
+```{r}
+
+# load cleaned application_train and application_test data from EDA HW (with removed columns, NA's, outliers)
+
+train_clean <- read_csv("C:/Users/nikit/Downloads/Capstone Project/train_clean.csv")
+test_clean <- read_csv("C:/Users/nikit/Downloads/Capstone Project/test_clean.csv")
+
+head(train_clean)  #first 6 rows
+
+dim(train_clean)  #shape of data
+
+```
+
+## Clean Train Data
+
+```{r}
+
+# remove identifier
+train_clean <- train_clean %>% select(-SK_ID_CURR) 
+
+
+# factor target  
+#train_clean$TARGET <- factor(train_clean$TARGET, levels = c(0, 1))
+
+
+# Modify all character variables into factors
+tr_clean <- train_clean %>% 
+            mutate_if(is.character, as.factor)
+
+
+# Store all numeric variables which should be factors in a vector
+
+num_cat_values <- c("TARGET","FLAG_EMP_PHONE","FLAG_WORK_PHONE","FLAG_EMAIL","FLAG_PHONE",'REG_REGION_NOT_WORK_REGION','LIVE_CITY_NOT_WORK_CITY',"REG_CITY_NOT_LIVE_CITY","REG_CITY_NOT_WORK_CITY","REGION_RATING_CLIENT_W_CITY","FLAG_DOCUMENT_3","FLAG_DOCUMENT_6","FLAG_DOCUMENT_8","REGION_RATING_CLIENT")
+
+# transform the vector of num. columns to factors
+tr_clean <- train_clean %>% 
+  mutate(across(all_of(num_cat_values), as.factor))
+
+
+# structure of target
+str(tr_clean$TARGET) 
+
+# summary of cleaned dataset
+summary(tr_clean)
+
+```
+
+## Clean Test Data
+
+```{r}
+
+
+# Modify all character variables into factors
+te_clean <- test_clean %>% 
+            mutate_if(is.character, as.factor)
+
+# Store all numeric variables which should be factors in a vector
+
+num_cat_values2 <- c("FLAG_EMP_PHONE","FLAG_WORK_PHONE","FLAG_EMAIL","FLAG_PHONE",'REG_REGION_NOT_WORK_REGION','LIVE_CITY_NOT_WORK_CITY',"REG_CITY_NOT_LIVE_CITY","REG_CITY_NOT_WORK_CITY","REGION_RATING_CLIENT_W_CITY","FLAG_DOCUMENT_3","FLAG_DOCUMENT_6","FLAG_DOCUMENT_8","REGION_RATING_CLIENT")
+
+# transform the vector of num. columns to factors
+
+te_clean <- test_clean %>% 
+  mutate(across(all_of(num_cat_values2), as.factor))
+
+
+# summary of cleaned dataset
+
+summary(te_clean)
+
+```
+
+# Class Imbalance
+
+```{r}
+
+
+table(tr_clean$TARGET)  #class distribution
+
+round(prop.table(table(tr_clean$TARGET)),4) * 100  #percentages
+
+# bar plot to show class imbalance
+
+ggplot(tr_clean, aes(x =TARGET, fill =TARGET)) +
+  geom_bar(color = "black") +
+  scale_fill_manual(values = c("0" = "skyblue", "1" = "tomato")) +
+  theme_minimal() +
+  labs(title = "Class Imbalance in Home Credit Default Risk Dataset",
+    x = "Default Status",
+    y = "Count",
+    fill = "Default Status")
+
+```
+The plot shows there's a huge class imbalance and majority of the clients have re-payed the loan. 91.91% of them show successful repayment and our models have a lot to learn from this information.
+
+
+# Non-Linear Separability Check
+
+```{r}
+
+# select any 2 random numeric variables and check scatter plot
+
+tr_clean|> # use cleaned initial train data before split (as train_matrix doesn't contain target)
+  ggplot(mapping = aes(x = AMT_INCOME_TOTAL, 
+                       y = AMT_CREDIT, 
+                       color = as.factor(TARGET))) +  # set color as TARGET
+  geom_point() + 
+  
+  labs(title = "Scatter Plot of Client Income vs Loan Credit Amount", 
+       x = "Total Income", # custom x-axis
+       y = "Credit Amount", # custom y -axis
+       color = "Default Status") +  # Add a label for the color legend
+  
+  scale_color_manual(values = c("0" = "blue", "1" = "green"),  
+                     labels = c("No Default", "Defaulted")) +  
+  theme_minimal() 
+
+```
+We have randomly selected 2 numeric variables from the cleaned dataset and plotted the relationship between them filtered by default status. It is clearly seen there is a class overlap and the data is noisy. The relationships are complex and cannot be separated by a straight line, we hence implement the XGboost blackbox model to capture such patterns along with improved performance and bias. 
+
+We can also cross verify this by modelling linear models such as SVM with a linear kernel or a simple logistic regression. The models would likely perform poorly, a model like the linear SVM would struggle by taking a long training time and using many vectors to make the predictions which indicates non-linear data.
+
+
+# Data Split
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Ensure TARGET is a factor
+#str(tr_clean$TARGET)
+
+# Split into training and validation sets
+
+train_index <- createDataPartition(tr_clean$TARGET, p = 0.7, list = FALSE)
+
+train_data <- tr_clean[train_index, ]
+
+test_data <- tr_clean[-train_index, ]
+
+
+```
+
+
+# Logistic Regression Performance
+
+```{r}
+
+# Fit glm model
+
+logistic <- glm(TARGET~., data = train_data, family = binomial())
+
+summary(logistic)
+
+
+# Predictions 
+
+## Predictions on the test data (probabilities)
+test_pred_probs <- predict(logistic, newdata = test_data, type = "response")
+
+## Convert probabilities to binary prediction outcomes using threshold = 0.5
+
+test_predictions <- ifelse(test_pred_probs > 0.5, 1, 0)
+
+
+# Evaluation
+
+## Calculate ROC-AUC
+roc_obj <- roc(test_data$TARGET, test_pred_probs)
+roc_auc <- auc(roc_obj)
+cat("ROC-AUC:", round(roc_auc, 4), "\n")
+
+
+## Plot ROC Curve
+roc_curve <- data.frame(
+  FPR = 1 - roc_obj$specificities,
+  TPR = roc_obj$sensitivities
+)
+
+ggplot(roc_curve, aes(x = FPR, y = TPR)) +
+  geom_line(color = "blue", size = 1) +
+  geom_abline(linetype = "dashed", color = "red") +
+  labs(title = "ROC Curve for Logistic Regression Model",
+       x = "1 - Specificity (FPR)",
+       y = "Sensitivity (TPR)") +
+  theme_minimal()
+
+
+## Calculate accuracy
+accuracy <- mean(test_predictions == test_data$TARGET)
+cat("Accuracy:", round(accuracy, 4), "\n")
+
+```
+The model shows high accuracy (91.91%) but this might be inflated due to an imbalanced dataset where non-defaults dominate. The AUC value of 73.91% suggests the model has acceptable discriminatory power in distinguishing between default and non-default cases, though there's room for improvement.
+
+# XGBoost
+
+## Define Model
+
+```{r}
+
+library(tidymodels)
+library(dials)
+library(doParallel)
+
+# Adjust for class imbalance: calculate scale_pos_weight
+scale_pos_weight <- sum(train_data$TARGET == 0) / sum(train_data$TARGET == 1)
+print(scale_pos_weight)
+
+# Set scale_pos_weight as an option
+options(scale_pos_weight = scale_pos_weight)
+
+# Define XGBoost model
+xgb_model <- boost_tree(
+  trees = tune(),
+  tree_depth = tune(),
+  learn_rate = tune(),
+  mtry = tune(),
+  min_n = tune(),
+  sample_size = tune(),
+  loss_reduction = tune()
+) %>%
+  set_engine("xgboost", 
+             early_stopping_rounds = 50,  
+             scale_pos_weight = getOption("scale_pos_weight"),
+             tree_method = "hist",
+             max_bin = 256,               
+             nthread = 4,
+             verbosity = 1 ) %>%
+  set_mode("classification")
+
+
+```
+
+### Define Recipe
+
+```{r}
+
+# Define Recipe
+recipe <- recipe(TARGET ~ ., data = train_data) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors()) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_novel(all_nominal_predictors()) %>%
+  step_other(all_nominal_predictors(), threshold = 0.05)
+
+```
+
+### Define Grid search parameter tuning and CV function
+
+```{r}
+
+# Define hyperparameter tuning grid
+xgb_grid <- grid_random(
+  trees(range = c(50, 100)),         # number of trees in each model
+  tree_depth(range = c(3, 6)),       
+  learn_rate(range = c(0.01, 0.2)),  
+  finalize(mtry(), train_data),
+  min_n(range = c(5, 20)),
+  sample_size = sample_prop(c(0.7, 1)),  # prop. of data in each node
+  loss_reduction(range = c(0, 1)),
+  size = 50                          # 50 tree models
+)
+
+# Define 5-fold cross-validation
+cv_folds <- vfold_cv(train_data, v = 5, strata = TARGET)
+
+
+```
+
+## Train the Model
+
+```{r}
+
+# Register parallel processing
+library(doParallel)
+num_cores <- detectCores()
+num_cores
+registerDoParallel(cores = 4)
+
+
+# Define the workflow
+wf <- workflow() %>%
+  add_model(xgb_model) %>%
+  add_recipe(recipe)
+
+
+# Tune the model
+
+library(yardstick)
+
+metrics <- yardstick::metric_set(yardstick::roc_auc, yardstick::mn_log_loss, yardstick::accuracy)
+
+set.seed(123)
+xgb_tune_model <- tune_grid(
+  wf,
+  resamples = cv_folds,
+  grid = xgb_grid,
+  metrics = metrics
+)
+
+# Stop parallel processing
+stopImplicitCluster()
+
+
+#show errors
+#show_notes(xgb_tune_model)  
+#collect_notes(xgb_tune_model)
+
+
+```
+
+## Evaluate Model
+
+### Identify best hyperparameters and finalize Workflow
+
+```{r}
+
+# Collect fold-specific metrics
+train_metrics <- xgb_tune_model %>%
+  collect_metrics()
+
+cat("Model Training Performance:\n")
+print(train_metrics)
+
+# Extract the best parameters using a single metric (e.g., `roc_auc`)
+best_params <- xgb_tune_model %>%
+  select_best(metric = "roc_auc")
+
+best_params
+
+
+# Finalize the workflow with the best parameters
+final_wf <- wf %>%
+  finalize_workflow(best_params)
+
+# Fit the final model on the training data
+final_fit <- final_wf %>%
+  fit(data = train_data)
+
+final_fit
+
+
+```
+
+
+### Evaluate on Train Data
+
+```{r}
+
+# Make predictions on the training data
+train_predictions <- final_fit %>%
+  predict(new_data = train_data, type = "prob")
+
+# Combine data frames: actual target values from train data and predictions (from train predictions)
+train_results <- bind_cols(train_data, train_predictions)
+
+
+# Create class predictions based on threshold = 0.5
+train_results <- train_results %>%
+  mutate(pred_class = ifelse(.pred_1 >= 0.5, "1", "0"))
+
+# Convert `pred_class` to factor
+train_results <- train_results %>%
+  mutate(pred_class = factor(pred_class, levels = levels(train_data$TARGET)))
+
+
+# Evaluate on the training set
+
+# ROC AUC
+roc_auc_train <- yardstick::roc_auc(train_results, truth = TARGET, .pred_1)
+
+# Log Loss
+log_loss_train <- yardstick::mn_log_loss(train_results, truth = TARGET, .pred_1)
+
+# Accuracy
+accuracy_train <- yardstick::accuracy(train_results, truth = TARGET, estimate = pred_class)
+
+
+
+# Error (1 - Accuracy)
+accuracy_value <- accuracy(train_results, truth = TARGET, estimate = pred_class)
+error_train <- 1 - accuracy_value$.estimate
+
+#  AUCPR (Area Under Precision-Recall Curve)
+aupr_train <- pr_auc(train_results, truth = TARGET, .pred_1)
+
+
+# All train metrics
+train_metrics <- data.frame(
+  Metric = c("ROC AUC", "Log Loss", "Accuracy", "Error", "AUCPR"),
+  Value = c(
+    roc_auc_train$.estimate,
+    log_loss_train$.estimate,
+    accuracy_value$.estimate,
+    error_train,
+    aupr_train$.estimate
+  )
+)
+
+train_metrics
+
+```
+
+
+### Evaluate on Test Data
+
+```{r}
+
+
+# Make predictions on the test data
+test_predictions <- final_fit %>%
+  predict(new_data = test_data, type = "prob")
+
+head(test_predictions)
+
+
+# Combine data frames: actual target values from test data and predictions (from test predictions)
+
+test_results <- bind_cols(test_data, test_predictions)
+
+head(test_results)
+
+
+# Evaluate on the test set
+
+library(yardstick)
+
+#test_metrics <- yardstick::metrics(test_results, truth = TARGET, .pred_1) %>%
+  #filter(.metric %in% c("roc_auc", "mn_log_loss", "accuracy"))
+
+
+# Create class predictions based on threshold = 0.5
+
+test_results <- test_results %>%
+   mutate(pred_class = ifelse(.pred_1 >= 0.5, "1", "0"))
+
+# Convert `pred_class` to be a factor
+test_results <- test_results %>%
+  mutate(pred_class = factor(pred_class, levels = levels(test_results$TARGET)))
+
+# Convert `TARGET` and `pred_class` to factors with the same levels
+test_results <- test_results %>%
+  mutate(
+    TARGET = factor(TARGET, levels = c("0", "1")),
+    pred_class = factor(pred_class, levels = c("0", "1"))
+  )
+
+
+
+# ROC: uses class predicted probabilities
+
+roc_auc_result <- yardstick::roc_auc(test_results, truth = TARGET, .pred_1)
+
+
+# Log Loss: uses class predicted probabilities
+log_loss_result <- yardstick::mn_log_loss(test_results, truth = TARGET, .pred_1)
+
+# Accuracy: uses factored class prediction
+accuracy_result <- yardstick::accuracy(test_results, truth = TARGET, estimate = pred_class)
+
+# Error 
+error_test <- yardstick::metrics(test_results, truth = TARGET, estimate = pred_class) %>%
+  filter(.metric == "accuracy") %>%
+  mutate(.estimate = 1 - .estimate)
+
+# AUCPR 
+aupr_test <- yardstick::pr_auc(test_results, truth = TARGET, .pred_1)
+
+# MAP (Mean Average Precision) - equivalent to precision at different recall thresholds
+
+map_test <- yardstick::average_precision(test_results, truth = TARGET, .pred_1)
+
+
+# All test Metrics
+test_metrics <- data.frame(
+  Metric = c("ROC AUC", "Log Loss", "Accuracy", "Error", "AUCPR", "MAP"),
+  Value = c(
+    roc_auc_result$.estimate,
+    log_loss_result$.estimate,
+    accuracy_result$.estimate,
+    error_test$.estimate,
+    aupr_test$.estimate,
+    map_test$.estimate
+  )
+)
+
+test_metrics
+
+
+```
+
+
+# Feature Importance 
+
+```{r}
+
+xgb_booster <- extract_fit_engine(final_fit)
+
+xgb_importance <- xgboost::xgb.importance(model = xgb_booster)
+
+head(xgb_importance)
+
+# Convert the xgb_importance data to a data frame
+xgb_importance_df <- as.data.frame(xgb_importance)
+
+# Select the top 15 important features based on Gain
+top_features <- xgb_importance_df %>%
+  arrange(desc(Gain)) %>%
+  head(15)
+
+# Reshape the data for ggplot2 (long format)
+importance_long <- top_features %>%
+  select(Feature, Gain, Cover, Frequency) %>%
+  tidyr::pivot_longer(cols = c("Gain", "Cover", "Frequency"),
+                      names_to = "Measure",
+                      values_to = "Importance")
+
+# Plot
+ggplot(importance_long, aes(x = reorder(Feature, Importance), y = Importance, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title = "Top Predictors",
+       x = "Feature",
+       y = "Importance") +
+  scale_fill_manual(values = c("lightblue", "pink", "lightgreen")) +
+  theme_minimal()
+
+
+```
+
+The plot illustrates the top predictors based on three metrics: Gain, Cover, and Frequency. Variables such as External sources, DAYS_BIRTH, AMT_GOODS_PRICE, DAYS_REGISTRATION, OWN_CAR_AGE, DAYS_LAST_PHONE_CHANGE are the most significant drivers of the model's predictions. The Gain (green bars) indicates the relative contribution of each feature to the model's accuracy. The Cover (blue bars) represents the proportion of observations that utilize the feature, with EXT_SOURCE_3 and DAYS_BIRTH covering a large share of the dataset. The Frequency (pink bars) shows how often the feature is used in the model's decision trees, suggesting that external source features are critical predictors for loan default.
+
+
+# Results
+
+## Make Predictions with the Test Application Data
+
+```{r}
+
+# Ensure factors and the levels in `test_clean for all predictors match those in the training data for prediction
+
+te_clean$REGION_RATING_CLIENT_W_CITY <- factor(te_clean$REGION_RATING_CLIENT_W_CITY,
+  levels = levels(train_data$REGION_RATING_CLIENT_W_CITY)
+)
+
+# remove any remaining NA's( just 1 was left)
+sum(is.na(te_clean$REGION_RATING_CLIENT_W_CITY))
+
+te_clean <- te_clean[!is.na(te_clean$REGION_RATING_CLIENT_W_CITY), ]
+
+
+# Predict on test data 
+
+
+boost_pred <- predict(final_fit, new_data = te_clean, type = "prob")
+
+```
+
+# Format the predictions into an acceptable format for Kaggle
+
+```{r}
+
+# Convert predictions to a dataframe
+
+boost_pred <- as.data.frame(boost_pred) 
+
+head(boost_pred)
+
+boost_pred1 <- boost_pred %>% 
+  select(".pred_0") %>% # Select only the zero column [ prob. of no default]
+  dplyr::pull() # Pull this column out and convert to vector.
+
+
+
+# Update kaggle_submission with the filtered predictions
+
+kaggle_submission <- te_clean %>% 
+  select(SK_ID_CURR) %>% # Select the ID
+  mutate(SK_ID_CURR = as.integer(SK_ID_CURR), # Convert SK_ID_CURR to an integer per Kaggle's requirements
+         TARGET = boost_pred1) # Kaggle wants Target to be a column in the dataset, so create a new column called "Target" and assign all the predictions to that column
+
+
+head(kaggle_submission) # Check the first few predictions 
+
+
+```
+
+```{r}
+
+# Specify where you want to export the submissions
+
+setwd("C:/Users/nikit/Downloads/Capstone Project")
+
+# Write the predictions to a csv file.
+
+write.csv(kaggle_submission, "C:/Users/nikit/Downloads/Capstone Project/kaggle_submission.csv", row.names = FALSE)
+
+ks <- read_csv("C:/Users/nikit/Downloads/Capstone Project/kaggle_submission.csv")
+
+head(ks)
+str(ks)
+
+ks <- read_csv("C:/Users/nikit/Downloads/Capstone Project/kaggle_submission.csv",
+               col_types = cols(
+                 SK_ID_CURR = col_integer(),
+                 TARGET = col_double()
+               ))
+
+ks <- read_csv("C:/Users/nikit/Downloads/Capstone Project/kaggle_submission.csv", show_col_types = FALSE)
+
+```
+
+## Final Interpretations and Conclusion
+
+The XGBoost model achieves an accuracy of 91.9% on the training set and 91% on the test set, but its ROC AUC of 0.5 on both sets indicates poor class discrimination, effectively performing no better than random guessing. However, its high AUC-PR scores (0.9595 for training and 0.95 for testing) suggest better handling of the minority class compared to the decision tree model, which showed high accuracy but a complete failure to identify minority instances. Unlike the decision tree, which struggled with the minority class (with a TPR of 0 and F1 score of 0), XGBoost performs better in this regard, though there's still room for improvement. When compared to the Naive Bayes model, which had a relatively faster training time (207.415 sec) and good overall efficiency but was also weak in classifying the minority class, XGBoost shows a better balance between accuracy and handling imbalanced data. Despite its low log loss (2.048) and relatively low error (8%), further optimization could improve the discriminatory power of XGBoost.
