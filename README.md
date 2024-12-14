@@ -6,17 +6,17 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 
 ## Solution
 
-Final Project: [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
+**Final Project:** [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
 
 The recommended solution for this project is the resampled XGBoost after evaluating various models across various metrics- AUC, log loss, confusion matrix, and accuracy.
 
-Logistic Regression(L1 - Lasso): The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
+**Logistic Regression(L1 - Lasso):** The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
 
-XGBoost: This is a fairly good model with a Kaggle score of 0.72235 and an AUC of 0.75 on the validation set. This indicates that the model is generalizing well to unseen data.
+**XGBoost:** This is a fairly good model with a Kaggle score of 0.72235 and an AUC of 0.75 on the validation set. This indicates that the model is generalizing well to unseen data.
 
-Resampled XGBoost: After training on resampled data, XGBoost achieved a Kaggle score of 0.72447. Notably, the resampled XGBoost model had an AUC of 0.99 on the resampled training data and 0.98 on the validation data. This demonstrates that resampling significantly helps the XGBoost model generalize better to unseen data. The improved Kaggle score aligns with this observation, confirming that resampling improves model performance on test data as well.
+**Resampled XGBoost:** After training on resampled data, XGBoost achieved a Kaggle score of 0.72447. Notably, the resampled XGBoost model had an AUC of 0.99 on the resampled training data and 0.98 on the validation data. This demonstrates that resampling significantly helps the XGBoost model generalize better to unseen data. The improved Kaggle score aligns with this observation, confirming that resampling improves model performance on test data as well.
 
-Remaining Models Kaggle Scores:
+**Remaining Models Kaggle Scores:**
 
 Random Forest: 0.68575
 
@@ -37,30 +37,30 @@ MLP: 0.50022
 
 ## Contribution
 
-Data Preparation and EDA: 
+**Data Preparation and EDA:** 
 -	Managed the initial stages of dataset, handling missing values, outliers, and variable scaling. 
 -	Conducted in-depth exploratory data analysis to uncover patterns and correlations which informed feature selection and preprocessing strategies.
 
-Upsampling:
+**Upsampling:**
 -	Addressed class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
 -	Addressed non-linearity in relationships to improve model robustness.
 
-Modelling:  
+**Modelling:**  
 -	Built a baseline logistic regression model to establish a reference point for performance. 
 -	Evaluated the influence of key predictors from penalized Lasso and made log-odds-to-probabilities conversions for interpretability.
 -	Developed an initial XGBoost and resampled XGBoost model to improve accuracy and performance.
 
-Cross-Validation and Grid Search:
+**Cross-Validation and Grid Search:**
 -	Implemented cross-validation and grid search to systematically evaluate the model across multiple hyperparameter configurations.
 
-Feature Importance: 
+**Feature Importance:**
 -	Analyzed feature importance from the model to identify the most significant predictors, providing actionable insights for data-driven decision-making.
 
-Interpretations: 
+**Interpretations:**
 -	Interpreted and summarized results and findings, visualized outcomes, and provided clear explanations to make the findings comprehensible and actionable for 
   stakeholders.
 
-Final Test Set and Kaggle Results: 
+**Final Test Set and Kaggle Results:** 
 -	Evaluated the final model on the test set, submitted predictions to Kaggle, and analysed the leaderboard results to validate model performance.
 
 
@@ -109,6 +109,7 @@ I learned from the XGBoost model that the top factors influencing default are ex
 •	 Improved my skills in preprocessing and feature engineering for complex datasets.
 
 •	 Strengthened my ability to translate technical insights into actionable business strategies.
+
 
 Overall, this was a very informative experience and I gained a lot of knowledge from the project.
 
