@@ -5,6 +5,13 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 
 ## Solution
 
+### PDF files of individual notebooks
+[Download the PDF version]( )  
+[Download the PDF version]( )  
+
+
+
+
 Our recommended solution is the resampled XGBoost after evaluating various models across the metrics- AUC, log loss, confusion matrix, and accuracy.
 
 Logistic Regression(L1 - Lasso): The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models we considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
@@ -48,6 +55,7 @@ Our solutions proves multiple benefits
 the main challenges faced was data preperation and cleaning of huge datasets and managing especially missing values and high dimensionality. Getting the models to run without errors and file knitting as it required sophisticated imputation methods and robust computational resources. Additionally, feature selection and ensuring model generalization across different data scenarios added layers of complexity to our project.
 
 ## Learnings (group)
+Business Value:
 
 The correlation analysis shows strong relationships between some key
 variables. For instance, AMT_CREDIT and AMT_GOODS_PRICE have an almost
@@ -90,14 +98,7 @@ annuity payments, with a few outliers skewing the results. The busiest
 time for loan applications was between 9 AM and 12 PM, peaking around 11
 AM, indicating this is when most clients submit their application.
 
-After merging with transactional data, the dataset now has 125 columns,
-with 3 additional columns and 8,579 rows, of which 8,057 clients did not
-default and 522 did, maintaining the same proportion of each target
-class as before. Overall, the joined data maintained similar important
-features and accuracy with the pre-merged data, with only minor changes
-observed in the least important variables. As a result, employment
-duration, client age, and car age remain key factors in predicting loan
-defaults.
+Merging with transactional data also showed similar results by maintaining the same proportions of each target class and key influencing factors with only a few minor changes.
 
 
 
@@ -141,4 +142,17 @@ defaults.
 
 
 Overall this was a very informative experience and we gained a lot of knowledge from the modeling process. For instance, we learned from the XGboost model that the top 5 predictors are Ext_Source_3, Ext_Source_2, Days_Birth and Amt_Annuity. This suggests that Home Credit should analyze these factors more critically when giving out loans. For instance, perhaps younger people have more difficulties with paying back loans compared to older people. This could be because they are just beginning their financial journey.
+
+
+Analytically:
+I deepened my expertise in several areas
+
+Machine Learning Proficiency: Advanced my understanding of ensemble methods and gradient boosting techniques.
+
+Data Handling Skills: Enhanced my ability to preprocess and engineer features from complex datasets effectively.
+
+Strategic Business Thinking: Improved my skills in translating technical findings into actionable business strategies.
+
+
+I hope you enjoy this project. If you have any questions, please contact me at nikitamuddapati01@gmail.com. Thank you for reading!
 
