@@ -7,7 +7,7 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 
 ### PDF files of individual notebooks
 
-EDA: [Download the html version](file:///C:/Users/nikit/Downloads/Capstone%20Project/EDA.html)
+EDA: [Download the html version](https://nikitamuddapati.github.io/Home-credit-default-risk/EDA.html)
 Final Project: [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
 
 Our recommended solution is the resampled XGBoost after evaluating various models across the metrics- AUC, log loss, confusion matrix, and accuracy.
