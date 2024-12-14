@@ -8,6 +8,8 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 
 **Final Project:** [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
 
+https://nikitamuddapati.github.io/Home-credit-default-risk/modelling_nikita.html
+
 The recommended solution for this project is the resampled XGBoost after evaluating various models across various metrics- AUC, log loss, confusion matrix, and accuracy.
 
 **Logistic Regression(L1 - Lasso):** The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
