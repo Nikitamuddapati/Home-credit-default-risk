@@ -7,6 +7,7 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 ## Solution
 
 **Final Project:** [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
+
 **Modelling:** https://nikitamuddapati.github.io/Home-credit-default-risk/modelling_nikita.html
 
 The recommended solution for this project is the resampled XGBoost after evaluating various models across various metrics- AUC, log loss, confusion matrix, and accuracy.
