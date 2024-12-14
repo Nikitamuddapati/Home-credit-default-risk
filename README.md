@@ -39,10 +39,10 @@ MLP: 0.50022
 
 Data Preparation and EDA: 
 -	Managed the initial stages of dataset, handling missing values, outliers, and variable scaling. 
--	conducted in-depth exploratory data analysis to uncover patterns and correlations which informed feature selection and preprocessing strategies.
+-	Conducted in-depth exploratory data analysis to uncover patterns and correlations which informed feature selection and preprocessing strategies.
 
 Upsampling:
--	 Addressed Class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
+-	Addressed Class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
 -	Addressed non-linearity in relationships to improve model robustness.
 
 Modelling:  
@@ -57,7 +57,8 @@ Feature Importance:
 -	Analyzed feature importance from the model to identify the most significant predictors, providing actionable insights for data-driven decision-making.
 
 Interpretations: 
--	Interpreted and summarized results and findings, visualized outcomes, and provided clear explanations to make the findings comprehensible and actionable for stakeholders.
+-	Interpreted and summarized results and findings, visualized outcomes, and provided clear explanations to make the findings comprehensible and actionable for 
+  stakeholders.
 
 Final Test Set and Kaggle Results: 
 -	Evaluated the final model on the test set, submitted predictions to Kaggle, and analysed the leaderboard results to validate model performance.
@@ -67,13 +68,18 @@ Final Test Set and Kaggle Results:
 
 **Reduced Financial Risk:** Accurate predictions will allow Home Credit to minimize loan default losses and optimize the loan approval process. I chose to evaluate the median loss instead of the average as it is a more robust measure when data is skewed. 
 
-Initial loss:
+*Initial loss*:
+
 •	Median Loss from Default (Defaulters): $24,412
+
 •	Median Loss from Incorrect Rejection (Non-Defaulters): $23,800
 
-Reduction in loss after model deployment:
+*Reduction in loss after model deployment*:
+
 •	Median Reduced Loss for Defaulters: $22,308.51 per customer
+
 •	Median Reduced Loss for Non-Defaulters: $23,757.16 per customer
+
 •	Total Reduced Loss: $329,692,235.11
 
 
@@ -84,7 +90,7 @@ Reduction in loss after model deployment:
 
 ## Challenges 
 
-I faced several challenges, starting with cleaning large datasets, particularly dealing with missing values and high dimensionality. I worked diligently to implement sophisticated imputation methods and built various algorithms to remove unnecessary variables. Particularly the XGBoost would take days to run and required robust computational resources for smooth execution. Hyperparameter tuning, feature selection and ensuring generalizability across the training and validation datasets added complexity to the project. Additionally, file knitting was extremely time-taking that required precision and attention to detail. 
+I faced several challenges, starting with cleaning large datasets, particularly dealing with missing values and high dimensionality. I worked diligently to implement sophisticated imputation methods and built various algorithms to remove unnecessary variables. Particularly the XGBoost would take days to run and required robust computational resources for smooth execution. Hyperparameter tuning, feature selection and ensuring generalizability across the training and validation datasets added complexity to the project. Additionally, file knitting was quite time-taking that required precision and attention to detail. 
 
 ## Learnings 
 
@@ -98,11 +104,11 @@ Overall, this was a very informative experience and I gained a lot of knowledge 
 
 **Analytical Learnings:**
 
-•   Enhanced my understanding of ensemble methods and gradient boosting.
+•  Enhanced my understanding of ensemble methods and gradient boosting.
 
-•	Improved my skills in preprocessing and feature engineering for complex datasets.
+•	 Improved my skills in preprocessing and feature engineering for complex datasets.
 
-•	Strengthened my ability to translate technical insights into actionable business strategies.
+•	 Strengthened my ability to translate technical insights into actionable business strategies.
 
 
 
