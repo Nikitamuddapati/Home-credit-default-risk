@@ -6,9 +6,7 @@ Home Credit primarily uses traditional credit scoring methods to evaluate the re
 ## Solution
 
 ### PDF files of individual notebooks
-EDA: [Download the PDF version]("C:\Users\nikit\Downloads\EDA-3 (1).html")
 
-Individual Modelling: [Download the PDF version](file:///C:/Users/nikit/Downloads/Capstone%20Project/modelling_nikita.html)
 
 Final Project: [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
 
