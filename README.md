@@ -38,7 +38,7 @@ MLP: 0.50022
 
 
 ## Contribution
-Data Preperation, EDA, Logistic Regression Baseline Model, Class Imbalance and Non-linearity checks, Upsampling, XGboost, Tuned XGboost, Cross Validation and Grid Search, Feature Importance, Interpretations, Summaries, Final Test set and Kaggle Results
+
 
 ## Business Value (group)
 
