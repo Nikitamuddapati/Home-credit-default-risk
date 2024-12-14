@@ -16,7 +16,7 @@ The recommended solution for this project is the resampled XGBoost after evaluat
 
 **Resampled XGBoost:** After training on resampled data, XGBoost achieved a Kaggle score of 0.72447. Notably, the resampled XGBoost model had an AUC of 0.99 on the resampled training data and 0.98 on the validation data. This demonstrates that resampling significantly helps the XGBoost model generalize better to unseen data. The improved Kaggle score aligns with this observation, confirming that resampling improves model performance on test data as well.
 
-**Remaining Models Kaggle Scores:**
+Remaining Models Kaggle Scores:
 
 Random Forest: 0.68575
 
@@ -70,20 +70,20 @@ MLP: 0.50022
 
 *Initial loss*:
 
-•	Median Loss from Default (Defaulters): $24,412
+•	**Median Loss from Default (Defaulters): $24,412**
 
-•	Median Loss from Incorrect Rejection (Non-Defaulters): $23,800
+•	**Median Loss from Incorrect Rejection (Non-Defaulters): $23,800**
 
 *Reduction in loss after model deployment*:
 
-•	Median Reduced Loss for Defaulters: $22,308.51 per customer
+•	**Median Reduced Loss for Defaulters: $22,308.51 per customer**
 
-•	Median Reduced Loss for Non-Defaulters: $23,757.16 per customer
+•	**Median Reduced Loss for Non-Defaulters: $23,757.16 per customer**
 
-•	Total Reduced Loss: $329,692,235.11
+•	**Total Reduced Loss: $329,692,235.11**
 
 
-**Enhanced Operational Efficiency:** A predictive model can help automate processes by saving time and resources spent manually on assessing loan applications.
+**Enhanced Operational Efficiency:** Helps automate processes by saving time and resources spent manually on assessing loan applications.
 
 **Increased Customer Trust:** With better risk management, Home Credit can confidently build trust and foster long-term relationships. It also helps extend loans to a larger customer pool, including those with limited credit history.
 
