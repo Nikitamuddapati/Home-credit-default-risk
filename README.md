@@ -111,7 +111,7 @@ I learned from the XGBoost model that the top factors influencing default are ex
 •	 Strengthened my ability to translate technical insights into actionable business strategies.
 
 
-Overall, this was a very informative experience and I gained a lot of knowledge from this project.
+Overall, it was a very informative experience and I gained a lot of knowledge from this project.
 
 
 
