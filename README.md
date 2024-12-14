@@ -1,18 +1,16 @@
-# Home-credit-default-risk
+# Home-Credit-Default-Risk
 
 ## Business Problem and Objective
+
 Home Credit primarily uses traditional credit scoring methods to evaluate the repayment capacity of loan applicants. However, these conventional sources often misjudge clients’ repayment potential, leading to unjust credit denials or approvals for unsuitable candidates, increasing default rates and financial risk. The objective after conducting Exploratory Data Analysis is to build a model that can accurately predict which clients can pay back their loans.
 
 ## Solution
 
-### PDF files of individual notebooks
-
-EDA: [View the HTML version](https://nikitamuddapati.github.io/Home-credit-default-risk/EDA.html)
 Final Project: [Download the PDF version](https://colab.research.google.com/drive/1QH8d6sJC3xr_IYy3aS4_d2IKYRhsregj?usp=drive_open)
 
-Our recommended solution is the resampled XGBoost after evaluating various models across the metrics- AUC, log loss, confusion matrix, and accuracy.
+The recommended solution for this project is the resampled XGBoost after evaluating various models across various metrics- AUC, log loss, confusion matrix, and accuracy.
 
-Logistic Regression(L1 - Lasso): The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models we considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
+Logistic Regression(L1 - Lasso): The overall Kaggle score was 0.72820, which achieves the highest accuracy across all the models considered. While this model only had an AUC of 0.74 for the train set and of 0.75 on the validation data, this is a very modest decline and it suggests that the model is generalizing quite well to unseen data. It’s also higher than a random classifier (Kaggle Score: 0.50) which suggests that this model is fairly decent at differentiating between the positive and negative classes.
 
 XGBoost: This is a fairly good model with a Kaggle score of 0.72235 and an AUC of 0.75 on the validation set. This indicates that the model is generalizing well to unseen data.
 
@@ -39,118 +37,74 @@ MLP: 0.50022
 
 ## Contribution
 
+Data Preparation and EDA: 
+-	Managed the initial stages of dataset, handling missing values, outliers, and variable scaling. 
+-	conducted in-depth exploratory data analysis to uncover patterns and correlations which informed feature selection and preprocessing strategies.
 
-## Business Value (group)
+Upsampling:
+-	 Addressed Class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
+-	Addressed non-linearity in relationships to improve model robustness.
 
-Our solutions proves multiple benefits
-•	Reduced Default Rates: Accurately predicting credit risk will allow Home Credit to minimize losses caused by loan defaults and optimize the loan approval process, minimizing risk.
-•	Increased Customer Trust: by reducing rejection of creditworthy customers, long-term relationships. It also helps extend loans to a larger customer pool, including those with limited credit history.
-•	Enhanced Operational Efficiency: A predictive model will help streamline decision-making processes, reducing manual intervention and lowering operational costs.
+Modelling:  
+-	Built a baseline logistic regression model to establish a reference point for performance. 
+-	Evaluated the influence of key predictors from penalized Lasso and made log-odds-to-probabilities conversions for interpretability.
+-	Developed an initial XGBoost and resampled XGBoost model to improve accuracy and performance.
 
+Cross-Validation and Grid Search:
+-	Implemented cross-validation and grid search to systematically evaluate the model across multiple hyperparameter configurations.
 
-## Challenges Faced (group)
+Feature Importance: 
+-	Analyzed feature importance from the model to identify the most significant predictors, providing actionable insights for data-driven decision-making.
 
-the main challenges faced was data preperation and cleaning of huge datasets and managing especially missing values and high dimensionality. Getting the models to run without errors and file knitting as it required sophisticated imputation methods and robust computational resources. Additionally, feature selection and ensuring model generalization across different data scenarios added layers of complexity to our project.
+Interpretations: 
+-	Interpreted and summarized results and findings, visualized outcomes, and provided clear explanations to make the findings comprehensible and actionable for stakeholders.
 
-## Learnings (group)
-Business Value:
-
-The correlation analysis shows strong relationships between some key
-variables. For instance, AMT_CREDIT and AMT_GOODS_PRICE have an almost
-perfect correlation (0.99), indicating that higher loans are typically
-associated with higher-value goods.
-
-
-The mean annuity amount is about \$31,236 and median is
-    \$29,209.5.Majority of the annuity amounts fall between \$19,548
-    (25th percentile) and \$40,320 (75th percentile), while the top 10%
-    exceed \$52,789.5.
-
--   The mean age in days is about -14,188 and median is -13,883.5.
-    Majority of the ages are falling between -16,299 (25th percentile)
-    and -11,664 (75th percentile) days, with the oldest 10% older than
-    -18,893 days.
-
--   The mean of DAYS_EMPLOYED is around -2203.44, with a median of
-    -1680.5. The majority of values lie between -3132.5 (25th
-    percentile) and -817 (75th percentile), with the lowest 10% of
-    values being below -5026.5.
-
--   The mean of the REGION_POPULATION_RELATIVE is about 0.0228, with a
-    median of 0.0202,majority of the data falls between 0.0106 (25th
-    percentile) and 0.0308 (75th percentile), with the top 10% of
-    regions having population relative values above 0.0462.
+Final Test Set and Kaggle Results: 
+-	Evaluated the final model on the test set, submitted predictions to Kaggle, and analysed the leaderboard results to validate model performance.
 
 
-vizs:  The EDA revealed interesting patterns. For example, the bar plot of
-OWN_CAR_AGE vs loan default showed that clients with newer cars (0 to 10
-years old) were slightly more likely to default, while those with older
-cars rarely defaulted. Similarly, the histogram of DAYS_EMPLOYED
-highlighted that many applicants were newly employed or had short
-employment histories before applying for a loan. Those with longer
-employment histories generally applied less frequently. In terms of
-credit amount, applicants with higher credit amounts tended not to
-default, with the median credit amount higher for non-defaulters.
-Additional insights included that defaulters tended to have higher
-annuity payments, with a few outliers skewing the results. The busiest
-time for loan applications was between 9 AM and 12 PM, peaking around 11
-AM, indicating this is when most clients submit their application.
+## Business Value
 
-Merging with transactional data also showed similar results by maintaining the same proportions of each target class and key influencing factors with only a few minor changes.
+**Reduced Financial Risk:** Accurate predictions will allow Home Credit to minimize loan default losses and optimize the loan approval process. I chose to evaluate the median loss instead of the average as it is a more robust measure when data is skewed. 
+
+Initial loss:
+•	Median Loss from Default (Defaulters): $24,412
+•	Median Loss from Incorrect Rejection (Non-Defaulters): $23,800
+
+Reduction in loss after model deployment:
+•	Median Reduced Loss for Defaulters: $22,308.51 per customer
+•	Median Reduced Loss for Non-Defaulters: $23,757.16 per customer
+•	Total Reduced Loss: $329,692,235.11
 
 
+**Enhanced Operational Efficiency:** A predictive model can help automate processes by saving time and resources spent manually on assessing loan applications.
 
-    **Car Age vs Loan Default:** Majority of clients with cars
-    irrespective of car age did default. A very tiny portion of clients
-    with car ages between 0 to 10 years defaulted. As car age increases
-    beyond 15 years, there are hardly any loan defaults meaning clients
-    with old cars seem to repay more often.
-
--   **No.of client employed days before application:** The histogram
-    shows that most people(about 2000 count) who have applied for loan
-    have been employed for less than 2000 days before applying for the
-    loan, with a notable peak in employment duration just around 0 days
-    of employment, indicating many of them were newly employed or had a
-    short employment history. Also, few of them (500 count) seem to have
-    a longer employment (6000 days) before applying.
-
--   **Loan Default by Credit Amount:** Those who received a higher
-    credit amount (in previous loan application) tend not to default(0)
-    and pay back. Median credit amount is higher for default = 0
-    compared to those who defaulted (1). Although both groups share
-    similar ranges in respective credit amounts, with a few outliers
-    present for those who failed repayment.
-
--   **Age vs Credit Amount by Loan Default:** The scatter plot shows the
-    relationship between a client's age (in days since birth) and credit
-    amount approved, filtered by default status. There is no clear
-    distinction in the credit amount approved across the different ages
-    between those who defaulted and did not, but a concentration of data
-    points around certain ages and credit amounts is observed.
-
--   **Loan Default by Annuity:** Applicants who defaulted(1) tend to
-    have slightly higher loan annuity amounts compared to those who did
-    not (0), with a few outliers among the default group(1). The median
-    annuity amount for both groups is close, though the distribution for
-    defaulters appears wider.
-
--   **Busiest hour:** Majority of clients applied between 9 AM and 12
-    PM, with a peak around 11 AM, suggesting 11 AM is the busiest hour
-    for loan application processing.
+**Increased Customer Trust:** With better risk management, Home Credit can confidently build trust and foster long-term relationships. It also helps extend loans to a larger customer pool, including those with limited credit history.
 
 
-Overall this was a very informative experience and we gained a lot of knowledge from the modeling process. For instance, we learned from the XGboost model that the top 5 predictors are Ext_Source_3, Ext_Source_2, Days_Birth and Amt_Annuity. This suggests that Home Credit should analyze these factors more critically when giving out loans. For instance, perhaps younger people have more difficulties with paying back loans compared to older people. This could be because they are just beginning their financial journey.
+## Challenges 
+
+I faced several challenges, starting with cleaning large datasets, particularly dealing with missing values and high dimensionality. I worked diligently to implement sophisticated imputation methods and built various algorithms to remove unnecessary variables. Particularly the XGBoost would take days to run and required robust computational resources for smooth execution. Hyperparameter tuning, feature selection and ensuring generalizability across the training and validation datasets added complexity to the project. Additionally, file knitting was extremely time-taking that required precision and attention to detail. 
+
+## Learnings 
+
+**Business Understanding:**
+
+Some key learnings from my analysis include identifying strong relationships between key variables, such as the near-perfect correlation (0.99) between AMT_CREDIT and AMT_GOODS_PRICE, which means that higher loans are tied to higher-value goods. The EDA revealed interesting patterns- for example, newer car owners being slightly more likely to default, while older car owners rarely default. 
+
+The mean annuity amount stands at $31,236. Additionally, applicants with longer employment histories applied less frequently, and higher credit amounts correlated with lower default rates. Moreover, most loan applications occurred between 9 AM and 12 PM, peaking at 11 AM. Insights from merged transactional data also confirmed these trends with minimal deviations.
+
+Overall, this was a very informative experience and I gained a lot of knowledge from the exploratory and modelling process. For instance, I learned from the XGBoost model that the top factors influencing default are external sources, client age and loan annuity amount. Perhaps younger people have more difficulties with paying back loans compared to older people. This could be because they are just beginning their financial journey. Home Credit should analyse these factors more critically while giving out loans.
+
+**Analytical Learnings:**
+
+•   Enhanced my understanding of ensemble methods and gradient boosting.
+
+•	Improved my skills in preprocessing and feature engineering for complex datasets.
+
+•	Strengthened my ability to translate technical insights into actionable business strategies.
 
 
-Analytically:
-I deepened my expertise in several areas
-
-Machine Learning Proficiency: Advanced my understanding of ensemble methods and gradient boosting techniques.
-
-Data Handling Skills: Enhanced my ability to preprocess and engineer features from complex datasets effectively.
-
-Strategic Business Thinking: Improved my skills in translating technical findings into actionable business strategies.
 
 
-I hope you enjoy this project. If you have any questions, please contact me at nikitamuddapati01@gmail.com. Thank you for reading!
 
