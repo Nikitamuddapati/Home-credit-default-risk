@@ -42,7 +42,7 @@ Data Preparation and EDA:
 -	Conducted in-depth exploratory data analysis to uncover patterns and correlations which informed feature selection and preprocessing strategies.
 
 Upsampling:
--	Addressed Class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
+-	Addressed class imbalance using upsampling to enhance representation of minority class, ensuring reduced bias in model predictions. 
 -	Addressed non-linearity in relationships to improve model robustness.
 
 Modelling:  
@@ -96,11 +96,11 @@ I faced several challenges, starting with cleaning large datasets, particularly 
 
 **Business Understanding:**
 
-Some key learnings from my analysis include identifying strong relationships between key variables, such as the near-perfect correlation (0.99) between AMT_CREDIT and AMT_GOODS_PRICE, which means that higher loans are tied to higher-value goods. The EDA revealed interesting patterns- for example, newer car owners being slightly more likely to default, while older car owners rarely default. 
+Some key learnings that I gained from my analysis include identifying strong relationships between key variables, such as the near-perfect correlation (0.99) between AMT_CREDIT and AMT_GOODS_PRICE, which means that higher loans are tied to higher-value goods. The EDA revealed interesting patterns- for example, newer car owners being slightly more likely to default, while older car owners rarely default. 
 
 The mean annuity amount stands at $31,236. Additionally, applicants with longer employment histories applied less frequently, and higher credit amounts correlated with lower default rates. Moreover, most loan applications occurred between 9 AM and 12 PM, peaking at 11 AM. Insights from merged transactional data also confirmed these trends with minimal deviations.
 
-Overall, this was a very informative experience and I gained a lot of knowledge from the exploratory and modelling process. For instance, I learned from the XGBoost model that the top factors influencing default are external sources, client age and loan annuity amount. Perhaps younger people have more difficulties with paying back loans compared to older people. This could be because they are just beginning their financial journey. Home Credit should analyse these factors more critically while giving out loans.
+I learned from the XGBoost model that the top factors influencing default are external sources, client age and loan annuity amount. Perhaps younger people have more difficulties with paying back loans compared to older people. This could be because they are just beginning their financial journey. Home Credit should analyse these factors more critically while giving out loans. 
 
 **Analytical Learnings:**
 
@@ -109,6 +109,8 @@ Overall, this was a very informative experience and I gained a lot of knowledge 
 •	 Improved my skills in preprocessing and feature engineering for complex datasets.
 
 •	 Strengthened my ability to translate technical insights into actionable business strategies.
+
+Overall, this was a very informative experience and I gained a lot of knowledge from my project.
 
 
 
